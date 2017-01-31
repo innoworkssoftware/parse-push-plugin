@@ -150,6 +150,9 @@ public class ParsePushPluginReceiver extends ParsePushBroadcastReceiver
 			builder.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI);
 		}
 
+		// set notification defaults
+		builder.setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS|Notification.DEFAULT_VIBRATE);
+
 		if(pnData.has("badge")){
              try {
                  if (pnData.getString("badge").equals("Increment")) {
