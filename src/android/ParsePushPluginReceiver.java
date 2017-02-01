@@ -13,6 +13,8 @@ import android.app.NotificationManager;
 import github.taivo.parsepushplugin.ParsePushConfigReader;
 import github.taivo.parsepushplugin.ParsePushConfigException;
 
+import android.content.SharedPreferences;
+import android.media.RingtoneManager;
 import android.support.v4.app.NotificationCompat;
 
 import android.net.Uri;
@@ -32,6 +34,7 @@ public class ParsePushPluginReceiver extends ParsePushBroadcastReceiver
 {
 	public static final String LOGTAG = "ParsePushPluginReceiver";
 	public static final String RESOURCE_PUSH_ICON_COLOR = "parse_push_icon_color";
+	public static final String BADGE_KEY = "badge";
 
 	private static JSONObject MSG_COUNTS = new JSONObject();
 	private static int badgeCount = 0;
@@ -150,28 +153,12 @@ public class ParsePushPluginReceiver extends ParsePushBroadcastReceiver
 			builder.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI);
 		}
 
-		// set notification defaults
 		builder.setDefaults(Notification.DEFAULT_SOUND|Notification.DEFAULT_LIGHTS|Notification.DEFAULT_VIBRATE);
 
-		if(pnData.has("badge")){
-             try {
-                 if (pnData.getString("badge").equals("Increment")) {
-                     badgeCount += 1;
-                 }
-             } catch (JSONException e) {
-                  Log.e(LOGTAG, "JSONException while parsing Increment:", e);
-             }
+		badgeCount += 1;
 
-             try {
-                 if (pnData.getInt("badge") >= 0) {
-                     badgeCount = pnData.getInt("badge");
-                 }
-             } catch (JSONException e) {
-                  Log.e(LOGTAG, "JSONException while parsing badge:", e);
-             }
+		setBadge(context, badgeCount);
 
-            setBadge(context, badgeCount);
-         }
 
 		builder.setSmallIcon(getSmallIconId(context, intent))
 		       .setLargeIcon(getLargeIcon(context, intent))
@@ -237,13 +224,15 @@ public class ParsePushPluginReceiver extends ParsePushBroadcastReceiver
 
 	 public static void resetBadge(Context context) {
 	     badgeCount = 0;
-	     setBadgeSamsung(context, 0);
-	     setBadgeSony(context, 0);
+	     setBadge(context, 0);
 	 }
 
 	 public static void setBadge(Context context, int count) {
 	     setBadgeSamsung(context, count);
 	     setBadgeSony(context, count);
+		 SharedPreferences.Editor editor = context.getSharedPreferences(BADGE_KEY, Context.MODE_PRIVATE).edit();
+		 editor.putInt(BADGE_KEY,count);
+		 editor.apply();
 	 }
 
 	 public static void setBadgeSamsung(Context context, int count) {
