@@ -2,6 +2,8 @@ package github.taivo.parsepushplugin;
 
 import android.app.Application;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.iid.FirebaseInstanceId;
 import com.parse.Parse;
 import com.parse.Parse.Configuration.Builder;
 import com.parse.ParseInstallation;
@@ -11,6 +13,7 @@ import com.parse.ParseException;
 import github.taivo.parsepushplugin.ParsePushConfigReader;
 import github.taivo.parsepushplugin.ParsePushConfigException;
 
+import android.content.Intent;
 import android.util.Log;
 
 /*
@@ -28,67 +31,73 @@ import android.util.Log;
          i.e., android:name="com.custom.package.MainApplication"
 */
 public class ParsePushApplication extends Application {
-  public static final String LOGTAG = "ParsePushApplication";
+   public static final String LOGTAG = "ParsePushApplication";
 
-  @Override
-  public void onCreate() {
-    super.onCreate();
+   @Override
+   public void onCreate(){
+      super.onCreate();
 
-    try {
-      // Other ways to call ParsePushReaderConfig:
-      //
-      // - Tell the reader to parse custom parameters, e.g., <preference name="CustomParam1" value="foo" />
-      //   ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null, new String[] {"CustomParam1", "CustomParam2"});
-      //
-      // - If you write your own MainApplication in your app package, just import com.yourpackage.R and skip detecting R.xml.config
-      //   ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), R.xml.config, null);
-      //
+      try {
+         // Other ways to call ParsePushReaderConfig:
+         //
+         // - Tell the reader to parse custom parameters, e.g., <preference name="CustomParam1" value="foo" />
+         //   ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null, new String[] {"CustomParam1", "CustomParam2"});
+         //
+         // - If you write your own MainApplication in your app package, just import com.yourpackage.R and skip detecting R.xml.config
+         //   ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), R.xml.config, null);
+         //
 
-      // Simple config reading for opensource parse-server:
-      // 1st null to detect R.xml.config resource id, 2nd null indicates no custom config param
-      //ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null, null);
-      //
-      //Parse.initialize(new Parse.Configuration.Builder(this)
-      //   .applicationId(config.getAppId())
-      //   .server(config.getServerUrl()) // The trailing slash is important, e.g., https://mydomain.com:1337/parse/
-      //   .build()
-      //);
 
-      //
-      // Support parse.com and opensource parse-server
-      // 1st null to detect R.xml.config
-      ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null,
-          new String[] { "ParseClientKey" });
-      if (config.getServerUrl().equalsIgnoreCase("PARSE_DOT_COM")) {
-        //
-        //initialize for use with legacy parse.com
-        Parse.initialize(this, config.getAppId(), config.getClientKey());
-      } else {
-        Log.d(LOGTAG, "ServerUrl " + config.getServerUrl());
-        Log.d(LOGTAG, "NOTE: The trailing slash is important, e.g., https://mydomain.com:1337/parse/");
-        Log.d(LOGTAG, "NOTE: Set the clientKey if your server requires it, otherwise it can be null");
-        //
-        // initialize for use with opensource parse-server
-        Parse.initialize(new Parse.Configuration.Builder(this).applicationId(config.getAppId())
-            .server(config.getServerUrl()).clientKey(config.getClientKey()).build());
+         // Simple config reading for opensource parse-server:
+         // 1st null to detect R.xml.config resource id, 2nd null indicates no custom config param
+         //ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null, null);
+         //
+         //Parse.initialize(new Parse.Configuration.Builder(this)
+         //   .applicationId(config.getAppId())
+         //   .server(config.getServerUrl()) // The trailing slash is important, e.g., https://mydomain.com:1337/parse/
+         //   .build()
+         //);
+         //
+         // Support parse.com and opensource parse-server
+         // 1st null to detect R.xml.config
+         ParsePushConfigReader config = new ParsePushConfigReader(getApplicationContext(), null, new String[] {"ParseClientKey"});
+//         if(config.getServerUrl().equalsIgnoreCase("PARSE_DOT_COM")){
+//            //
+//            //initialize for use with legacy parse.com
+//            Parse.initialize(this, config.getAppId(), config.getClientKey());
+//         } else {
+            Log.d(LOGTAG, "ServerUrl " + config.getServerUrl());
+            Log.d(LOGTAG, "NOTE: The trailing slash is important, e.g., https://mydomain.com:1337/parse/");
+            Log.d(LOGTAG, "NOTE: Set the clientKey if your server requires it, otherwise it can be null");
+            Parse.enableLocalDatastore(this);
+            //
+            // initialize for use with opensource parse-server
+            Parse.initialize(new Parse.Configuration.Builder(this)
+               .applicationId(config.getAppId())
+               .server(config.getServerUrl())
+               .clientKey(config.getClientKey())
+               .build()
+            );
+//         }
+
+         Log.d(LOGTAG, "Saving Installation in background");
+         //
+         // save installation. Parse.Push will need this to push to the correct device
+         ParseInstallation installation = ParseInstallation.getCurrentInstallation();
+         installation.put("GCMSenderId","1021248970841");
+         installation.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException ex) {
+               if (null != ex) {
+                  Log.e(LOGTAG, ex.toString());
+               } else {
+                  Log.d(LOGTAG, "Installation saved");
+               }
+            }
+         });
+
+      } catch(ParsePushConfigException ex){
+         Log.e(LOGTAG, ex.toString());
       }
-
-      Log.d(LOGTAG, "Saving Installation in background");
-      //
-      // save installation. Parse.Push will need this to push to the correct device
-      ParseInstallation.getCurrentInstallation().saveInBackground(new SaveCallback() {
-        @Override
-        public void done(ParseException ex) {
-          if (null != ex) {
-            Log.e(LOGTAG, ex.toString());
-          } else {
-            Log.d(LOGTAG, "Installation saved");
-          }
-        }
-      });
-
-    } catch (ParsePushConfigException ex) {
-      Log.e(LOGTAG, ex.toString());
-    }
-  }
+   }
 }
